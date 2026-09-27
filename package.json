@@ -21,10 +21,13 @@
   },
   "devDependencies": {
     "typescript": "~5.7.2",
-    "vite": "^6.3.1"
+    "vite": "^6.3.1",
+    "vitest": "^5.0.2"
   },
   "dependencies": {
     "phaser": "4.0.0",
     "terser": "^5.39.0"
   }
 }
+
+

@@ -1,7 +1,5 @@
-import StartGame from './game/main';
+import { createGameApp } from './bootstrap/createGameApp';
 
-document.addEventListener('DOMContentLoaded', () => {
+import './style.css';
 
-    StartGame('game-container');
-
-});
+createGameApp('game');
