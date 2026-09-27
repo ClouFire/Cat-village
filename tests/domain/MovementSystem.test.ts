@@ -39,7 +39,14 @@ function createMovingState(): GameState {
       },
     ],
 
-    kitchens: []
+    kitchens: [],
+
+    inventory: {
+        id: 'inv-001',
+        name: 'ProductionInv',
+
+        kitchenProductionResult: 0
+    }
   };
 }
 
