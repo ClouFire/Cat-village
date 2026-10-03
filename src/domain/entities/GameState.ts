@@ -1,5 +1,5 @@
 import type { Cat } from './Cat';
-import type { Kitchen } from './Kitchen';
+import type { Kitchen } from './workstation/kitchen/Kitchen';
 import type { Inventory } from './Inventory';
 
 export interface GameState {

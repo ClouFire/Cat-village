@@ -1,4 +1,5 @@
 import type { GameState } from '../entities/GameState';
+import { collectProduction } from './collectProduction';
 
 export type InteractWithKitchenResult  = 
     | {
@@ -59,8 +60,24 @@ export function interactWithKitchen(
 
     if (kitchen.state === 'ready') {
         const nextKitchenState = 'idle';
-        state.inventory.kitchenProductionResult++;
 
+        const productionResult = collectProduction(state, kitchen.type, kitchenId);
+
+        if (productionResult.ok) {
+            return {
+                ok: true,
+                state: {
+                    ...state,
+
+                    kitchens: state.kitchens.map(item => {
+                        return item.id === kitchenId ? {...item, state: nextKitchenState} : item
+                    }),
+
+                    inventory: productionResult.state.inventory
+                }
+            }
+        }
+        
         return {
             ok: true,
             state: {

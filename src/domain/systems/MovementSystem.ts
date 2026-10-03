@@ -7,8 +7,8 @@ function moveCatByTime(
   elapsedMs: number,
 ): Cat {
   if (
-    cat.state !== 'moving' ||
-    cat.targetPosition === null
+    cat.state !== 'moving'
+    || cat.targetPosition === null
   ) {
     return cat;
   }
@@ -106,19 +106,52 @@ export function simulateKitchenArrival(
     && cat.position.x === kitchen.position.x
     && cat.position.y === kitchen.position.y
     && cat.targetPosition === null) {
-      cat.state = 'cooking';
-      cat.kitchenId = kitchen.id;
+      const catId = cat.id;
+      const kitchenId = kitchen.id;
 
-      kitchen.state = 'producing';
-      kitchen.catId = cat.id;
-      kitchen.producingRemainingMs = 10000;
+      const newCatState = 'cooking';
+      const newCatKitchenId = kitchenId;
+
+      const newKitchenState = 'producing';
+      const newKitchenCatId = catId;
+      const newKitchenProducingCycle = kitchen.productionDuration;
 
       return {
         ...state,
-        cats,
-        kitchens
+        cats: state.cats.map(item => {
+                return item.id === catId ? {...item, state: newCatState, kitchenId: newCatKitchenId} : item
+            }),
+        kitchens: state.kitchens.map(item => {
+          return item.id === kitchenId ? {...item, state: newKitchenState, catId: newKitchenCatId, productionRemaining: newKitchenProducingCycle} : item
+        }),
       }
   }
 
   return state;
+}
+
+export function simulateLeavingWorkstation(
+    state: GameState,
+    elapsedMs: number,
+): GameState {
+    const cats = state.cats.map(cat => {
+        if (cat.state !== 'moving') {
+            return cat;
+        }
+
+        return moveCatByTime(cat, elapsedMs);
+    });
+
+    const hasChanges = cats.some(
+        (cat, index) => cat !== state.cats[index]
+    );
+
+    if (!hasChanges) {
+        return state;
+    }
+
+    return {
+        ...state,
+        cats,
+    };
 }

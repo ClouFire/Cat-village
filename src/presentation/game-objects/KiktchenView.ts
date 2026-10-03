@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser';
 
-import type { Kitchen } from '../../domain/entities/Kitchen';
+import type { Kitchen } from '../../domain/entities/workstation/kitchen/Kitchen';
 
 export class KitchenView extends Phaser.GameObjects.Container {
     private readonly bodyShape: Phaser.GameObjects.Rectangle;

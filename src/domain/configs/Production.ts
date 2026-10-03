@@ -1,0 +1,2 @@
+export type ProductionTypes =
+    | 'soup';

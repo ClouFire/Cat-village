@@ -42,15 +42,18 @@ export function createGameApp(
         name: 'first',
         appearanceId: 'black-square',
         state: 'idle',
+        productionType: 'soup',
+        type: 'kitchen',
 
         position: {
           x: 250,
           y: 620
         },
 
-        producingSpeed: 10,
-        producingAmount: 1,
-        producingRemainingMs: null,
+        productionSpeed: 10,
+        productionAmount: 1,
+        productionDuration: 1000,
+        productionRemaining: null,
 
         catId: null
       }
@@ -60,7 +63,9 @@ export function createGameApp(
       id: 'inv-001',
       name: 'productionInv',
 
-      kitchenProductionResult: 0,
+      items: {
+        soup: 0
+      },
     }
   };
 

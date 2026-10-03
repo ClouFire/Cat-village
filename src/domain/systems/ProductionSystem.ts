@@ -1,10 +1,6 @@
 import type { GameState } from '../entities/GameState';
 import type { Position } from '../value-objects/Position';
 
-
-import { moveCat } from '../rules/moveCat';
-
-
 export function simulateProduction(
     state: GameState,
     elapsedMs: number
@@ -15,40 +11,51 @@ export function simulateProduction(
         return state;
     }
 
-    if (kitchen.producingRemainingMs === null) {
+    const kitchenId = kitchen.id;
+    const catId = kitchen.catId;
+
+    if (catId === null) {
         return state;
     }
 
-    if (kitchen.producingRemainingMs <= 0) {
-        kitchen.producingRemainingMs = null;
-        kitchen.state = 'ready';
+    if (kitchen.productionRemaining === null) {
+        return state;
+    }
 
-        const cat = state.cats.find(item => item.id === kitchen.catId);
-        const position: Position = {
-            x: 195,
-            y: 420
-        };
+    if (kitchen.productionRemaining <= 0) {
+        const newKitchenProducingRemain = null;
+        const newKitchenState = 'ready';
 
-        kitchen.catId = null;
-
-        if (cat) {
-            cat.state = 'resting';
-            cat.kitchenId = null;
-            const moveCatResult = moveCat(state, cat.id, position);
-
-            if (moveCatResult.ok) {
-                state.cats = moveCatResult.state.cats;
-            }
+        const newCatState = 'moving';
+        const newCatTarget = {
+            x: getRandomInt(100, 190),
+            y: getRandomInt(400, 500)
         }
 
         return {
             ...state,
-        };
+
+            kitchens: state.kitchens.map(item => {
+                return item.id === kitchenId ? {...item, state: newKitchenState, producingRemainingMs: newKitchenProducingRemain, catId: null} : item
+            }),
+
+            cats: state.cats.map(item => {
+                return item.id === catId ? {...item, state: newCatState, targetPosition: newCatTarget, kitchenId: null} : item
+            }),
+        }
     }
 
-    kitchen.producingRemainingMs -= kitchen.producingSpeed * elapsedMs;
+    const newProducingRemain = kitchen.productionRemaining - (kitchen.productionSpeed * elapsedMs);
 
     return {
         ...state,
+
+        kitchens: state.kitchens.map(item => {
+            return item.id === kitchenId ? {...item, productionRemaining: newProducingRemain} : item
+        }),
     }
+}
+
+function getRandomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
