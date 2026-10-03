@@ -1,4 +1,5 @@
 import type { GameState } from '../entities/GameState';
+import { Position } from '../value-objects/Position';
 import { collectProduction } from './collectProduction';
 
 export type InteractWithKitchenResult  = 
@@ -40,7 +41,10 @@ export function interactWithKitchen(
         const nextCatState = 'moving';
         const catId = cat.id;
 
-        cat.targetPosition = kitchen.position;
+        const newCatTargetPosition: Position = {
+            x: kitchen.position.x,
+            y: kitchen.position.y,
+        };
 
         return {
             ok: true,
@@ -52,7 +56,7 @@ export function interactWithKitchen(
                 }),
                 
                 cats: state.cats.map(item => {
-                    return item.id === catId ? {...item, state: nextCatState, targetPosition: item.targetPosition} : item
+                    return item.id === catId ? {...item, state: nextCatState, targetPosition: newCatTargetPosition} : item
                 }),
             }
         };
