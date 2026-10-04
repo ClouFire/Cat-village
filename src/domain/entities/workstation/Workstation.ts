@@ -10,7 +10,7 @@ export interface Workstation {
     position: Position;
     type: WorkstationType;
 
-    catId: string | null;
+    assignedCatId: string | null;
 
     productionType: ProductionTypes;
     productionAmount: number;

@@ -3,35 +3,37 @@ import * as Phaser from 'phaser';
 import type { GameState } from '../../domain/entities/GameState';
 import type { GameStore } from '../../application/store/GameStore';
 import type { Position } from '../../domain/value-objects/Position';
-import type { AvailableCatsList } from '../../application/use-cases/kitchenClickActionUseCase';
-import type { KitchenClickActionResult } from '../../application/use-cases/kitchenClickActionUseCase';
+import type {
+    AvailableCatsList,
+    WorkstationClickActionResult,
+} from '../../application/use-cases/workstationClickActionUseCase';
 
 import { CatView } from '../game-objects/CatView';
-import { KitchenView } from '../game-objects/KiktchenView';
+import { KitchenView } from '../game-objects/KitchenView';
 
 export interface VillageSceneDependencies {
     store: GameStore;
-    
+
     interactWithCat: (catId: string) => void;
     moveCat: (catId: string, target: Position) => void;
 
-    resolveKitchenClickAction: (kitchenId: string) => KitchenClickActionResult;
-    interactWithKitchen: (kitchenId: string) => void;
-    assignCatToKitchen: (catId: string, kitchenId: string) => void;
-    
+    resolveWorkstationClickAction: (workstationId: string) => WorkstationClickActionResult;
+    collectWorkstationProduction: (workstationId: string) => void;
+    assignCatToWorkstation: (catId: string, workstationId: string) => void;
+
     tick: (elapsedMs: number) => void;
 }
 
 export class VillageScene extends Phaser.Scene {
     private readonly dependencies: VillageSceneDependencies;
     private readonly catViews = new Map<string, CatView>();
-    private readonly kitchenViews = new Map<string, KitchenView>();
+    private readonly workstationViews = new Map<string, KitchenView>();
     private catSelectorContainer: Phaser.GameObjects.Container | null = null;
     private unsubscribe: (() => void) | null = null;
 
     constructor(dependencies: VillageSceneDependencies) {
         super({
-            key: 'VillageScene'
+            key: 'VillageScene',
         });
 
         this.dependencies = dependencies;
@@ -55,11 +57,11 @@ export class VillageScene extends Phaser.Scene {
             this.handleShutdown,
             this,
         );
-    };
+    }
 
     update(_time: number, delta: number): void {
         this.dependencies.tick(delta);
-    };
+    }
 
     private createEnvironment(): void {
         const width = this.scale.width;
@@ -96,12 +98,11 @@ export class VillageScene extends Phaser.Scene {
                     cat.id,
                     {
                         x: pointer.worldX,
-                        y: pointer.worldY
+                        y: pointer.worldY,
                     },
                 );
-            }
+            },
         );
-
 
         this.add.text(
             width / 2,
@@ -128,18 +129,18 @@ export class VillageScene extends Phaser.Scene {
     }
 
     private renderVillage(state: Readonly<GameState>): void {
-        const activeIds = new Set(
+        const activeCatIds = new Set(
             state.cats.map(cat => cat.id),
         );
 
         for (const [id, view] of this.catViews) {
-            if (!activeIds.has(id)) {
+            if (!activeCatIds.has(id)) {
                 view.destroy();
                 this.catViews.delete(id);
             }
         }
 
-        state.cats.forEach((cat, index) => {
+        state.cats.forEach(cat => {
             let view = this.catViews.get(cat.id);
 
             if (!view) {
@@ -148,7 +149,7 @@ export class VillageScene extends Phaser.Scene {
                     cat.position.x,
                     cat.position.y,
                     cat,
-                    this.dependencies.interactWithCat    
+                    this.dependencies.interactWithCat,
                 );
 
                 this.catViews.set(cat.id, view);
@@ -157,56 +158,64 @@ export class VillageScene extends Phaser.Scene {
             view.render(cat);
         });
 
-        const activeKitchenIds = new Set(
-            state.kitchens.map(kitchen => kitchen.id),
+        const activeWorkstationIds = new Set(
+            state.workstations.map(workstation => workstation.id),
         );
 
-        for (const [id, view] of this.kitchenViews) {
-            if (!activeKitchenIds.has(id)) {
+        for (const [id, view] of this.workstationViews) {
+            if (!activeWorkstationIds.has(id)) {
                 view.destroy();
-                this.kitchenViews.delete(id);
+                this.workstationViews.delete(id);
             }
         }
 
-        state.kitchens.forEach((kitchen, index) => {
-            let view = this.kitchenViews.get(kitchen.id);
+        state.workstations.forEach(workstation => {
+            switch (workstation.type) {
+                case 'kitchen': {
+                    let view = this.workstationViews.get(workstation.id);
 
-            if (!view) {
-                view = new KitchenView(
-                    this,
-                    kitchen.position.x,
-                    kitchen.position.y,
-                    kitchen,
-                    kitchenId => this.handleKitchenClick(kitchenId)
-                );
+                    if (!view) {
+                        view = new KitchenView(
+                            this,
+                            workstation.position.x,
+                            workstation.position.y,
+                            workstation,
+                            workstationId => this.handleWorkstationClick(workstationId),
+                        );
 
-                this.kitchenViews.set(kitchen.id, view);
+                        this.workstationViews.set(workstation.id, view);
+                    }
+
+                    view.render(workstation);
+                    break;
+                }
             }
-
-            view.render(kitchen);
         });
     }
 
     private handleShutdown(): void {
         this.unsubscribe?.();
-
         this.unsubscribe = null;
 
         for (const view of this.catViews.values()) {
             view.destroy();
         }
 
+        for (const view of this.workstationViews.values()) {
+            view.destroy();
+        }
+
         this.closeCatSelector();
         this.catViews.clear();
-        this.kitchenViews.clear();
+        this.workstationViews.clear();
     }
 
-    private handleKitchenClick(kitchenId: string): void {
-        const result = this.dependencies.resolveKitchenClickAction(kitchenId);
+    private handleWorkstationClick(workstationId: string): void {
+        const result = this.dependencies.resolveWorkstationClickAction(workstationId);
 
         if (!result.ok) {
             console.warn(
-                'Kitchen click resolve failed',
+                'Workstation click resolve failed',
                 result.error,
             );
 
@@ -215,28 +224,23 @@ export class VillageScene extends Phaser.Scene {
 
         switch (result.action) {
             case 'COLLECT_PRODUCTION':
-                this.dependencies.interactWithKitchen(result.kitchenId);
-
+                this.dependencies.collectWorkstationProduction(result.workstationId);
                 break;
 
             case 'OPEN_CAT_SELECTOR':
                 this.openCatSelector(
-                    result.kitchenId,
+                    result.workstationId,
                     result.availableCatsList,
                 );
-
                 break;
 
             case 'NOOP':
-                break;
-
-            default:
                 break;
         }
     }
 
     private openCatSelector(
-        kitchenId: string,
+        workstationId: string,
         cats: AvailableCatsList,
     ): void {
         this.closeCatSelector();
@@ -262,10 +266,10 @@ export class VillageScene extends Phaser.Scene {
         const footerHeight = cats.length === 0 ? 54 : 18;
 
         const panelHeight =
-            panelPadding * 2 +
-            titleHeight +
-            cats.length * rowHeight +
-            footerHeight;
+            panelPadding * 2
+            + titleHeight
+            + cats.length * rowHeight
+            + footerHeight;
 
         const panel = this.add.container(
             width / 2,
@@ -305,7 +309,7 @@ export class VillageScene extends Phaser.Scene {
         const subtitle = this.add.text(
             0,
             -panelHeight / 2 + 52,
-            'Кто будет работать на кухне?',
+            'Кто будет работать здесь?',
             {
                 fontFamily: 'Arial',
                 fontSize: '12px',
@@ -354,17 +358,16 @@ export class VillageScene extends Phaser.Scene {
             );
 
             emptyText.setOrigin(0.5);
-
             panel.add(emptyText);
         }
 
         cats.forEach((cat, index) => {
             const y =
-                -panelHeight / 2 +
-                panelPadding +
-                titleHeight +
-                28 +
-                index * rowHeight;
+                -panelHeight / 2
+                + panelPadding
+                + titleHeight
+                + 28
+                + index * rowHeight;
 
             const row = this.add.rectangle(
                 0,
@@ -410,9 +413,9 @@ export class VillageScene extends Phaser.Scene {
             actionText.setOrigin(1, 0.5);
 
             const selectCat = () => {
-                this.dependencies.assignCatToKitchen(
+                this.dependencies.assignCatToWorkstation(
                     cat.id,
-                    kitchenId,
+                    workstationId,
                 );
 
                 this.closeCatSelector();
@@ -449,7 +452,6 @@ export class VillageScene extends Phaser.Scene {
         ]);
 
         modal.setDepth(1000);
-
         this.catSelectorContainer = modal;
     }
 

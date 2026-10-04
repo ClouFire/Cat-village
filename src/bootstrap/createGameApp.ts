@@ -1,167 +1,162 @@
 import * as Phaser from 'phaser';
 
-
 import type { GameState } from '../domain/entities/GameState';
-
 
 import { GameStore } from '../application/store/GameStore';
 import { GameLoop } from '../application/GameLoop';
 
-
 import { createInteractWithCatUseCase } from '../application/use-cases/interactWithCat';
-import { createInteractWithKitchenUseCase } from '../application/use-cases/interactWithKitchen';
-import { createAssignCatToKitchenUseCase } from '../application/use-cases/assignCatToKitchenUseCase';
-import { createKitchenClickActionUseCase } from '../application/use-cases/kitchenClickActionUseCase';
+import { createCollectWorkstationProductionUseCase } from '../application/use-cases/collectWorkstationProductionUseCase';
+import { createAssignCatToWorkstationUseCase } from '../application/use-cases/assignCatToWorkstationUseCase';
+import { createWorkstationClickActionUseCase } from '../application/use-cases/workstationClickActionUseCase';
 import { createMoveCatUseCase } from '../application/use-cases/moveCat';
-
 
 import { VillageScene } from '../presentation/scenes/VillageScene';
 
 export function createGameApp(
-  parent: string,
+    parent: string,
 ): Phaser.Game {
-  const initialState: GameState = {
-    version: 1,
+    const initialState: GameState = {
+        version: 1,
 
-    cats: [
-      {
-        id: 'cat-001',
-        name: 'Mochi',
-        appearanceId: 'orange-tabby',
-        state: 'idle',
+        cats: [
+            {
+                id: 'cat-001',
+                name: 'Mochi',
+                appearanceId: 'orange-tabby',
+                state: 'idle',
 
-        position: { x: 195, y: 420 },
-        targetPosition: null,
-        movementSpeed: 80,
+                position: { x: 195, y: 420 },
+                targetPosition: null,
+                movementSpeed: 80,
 
-        kitchenId: null
-      },
-    ],
+                workstationId: null,
+            },
+        ],
 
-    kitchens: [
-      {
-        id: 'kitchen-001',
-        name: 'first',
-        appearanceId: 'black-square',
-        state: 'idle',
-        productionType: 'soup',
-        type: 'kitchen',
+        workstations: [
+            {
+                id: 'workstation-001',
+                name: 'first kitchen',
+                appearanceId: 'black-square',
+                state: 'idle',
+                productionType: 'soup',
+                type: 'kitchen',
 
-        position: {
-          x: 250,
-          y: 620
+                position: {
+                    x: 250,
+                    y: 620,
+                },
+
+                productionSpeed: 10,
+                productionAmount: 1,
+                productionDuration: 1000,
+                productionRemaining: null,
+
+                assignedCatId: null,
+            },
+        ],
+
+        inventory: {
+            id: 'inv-001',
+            name: 'productionInv',
+
+            items: {
+                soup: 0,
+            },
+        },
+    };
+
+    const store = new GameStore(initialState);
+    const gameLoop = new GameLoop(store);
+
+    const moveCat = createMoveCatUseCase(store);
+    const interactWithCat = createInteractWithCatUseCase(store);
+
+    const resolveWorkstationClickAction = createWorkstationClickActionUseCase(store);
+    const collectWorkstationProduction = createCollectWorkstationProductionUseCase(store);
+    const assignCatToWorkstation = createAssignCatToWorkstationUseCase(store);
+
+    const villageScene = new VillageScene({
+        store,
+
+        interactWithCat: catId => {
+            const result = interactWithCat(catId);
+
+            if (!result.ok) {
+                console.warn(
+                    'Cat interaction failed:',
+                    result.error,
+                );
+            }
         },
 
-        productionSpeed: 10,
-        productionAmount: 1,
-        productionDuration: 1000,
-        productionRemaining: null,
+        moveCat: (catId, target) => {
+            moveCat(catId, target);
+        },
 
-        catId: null
-      }
-    ],
+        tick: (elapsedMs: number) => {
+            gameLoop.tick(elapsedMs);
+        },
 
-    inventory: {
-      id: 'inv-001',
-      name: 'productionInv',
+        resolveWorkstationClickAction: (workstationId: string) => {
+            const result = resolveWorkstationClickAction(workstationId);
 
-      items: {
-        soup: 0
-      },
-    }
-  };
+            if (!result.ok) {
+                console.warn(
+                    'Action failed',
+                    result.error,
+                );
+            }
 
-  const store = new GameStore(initialState);
-  const gameLoop = new GameLoop(store);
+            return result;
+        },
 
-  const moveCat = createMoveCatUseCase(store);
-  const interactWithCat = createInteractWithCatUseCase(store);
+        assignCatToWorkstation: (catId: string, workstationId: string) => {
+            const result = assignCatToWorkstation(catId, workstationId);
 
-  const resolveKitchenClickAction = createKitchenClickActionUseCase(store);
-  const interactWithKitchen = createInteractWithKitchenUseCase(store);
-  const assignCatToKitchen = createAssignCatToKitchenUseCase(store);
+            if (!result.ok) {
+                console.warn(
+                    'Assignment failed',
+                    result.error,
+                );
+            }
+        },
 
-  const villageScene = new VillageScene({
-    store,
+        collectWorkstationProduction: workstationId => {
+            const result = collectWorkstationProduction(workstationId);
 
-    interactWithCat: catId => {
-      const result = interactWithCat(catId);
+            if (!result.ok) {
+                console.warn(
+                    'Workstation production collection failed',
+                    result.error,
+                );
+            }
+        },
+    });
 
-      if (!result.ok) {
-        console.warn(
-          'Cat interaction failed:',
-          result.error,
-        );
-      }
-    },
+    const config: Phaser.Types.Core.GameConfig = {
+        type: Phaser.AUTO,
 
-    moveCat: (catId, target) => {
-      moveCat(catId, target);
-    },
+        parent,
 
-    tick: (elapsedMs: number) => {
-      gameLoop.tick(elapsedMs);
-    },
+        width: 390,
+        height: 844,
 
-    resolveKitchenClickAction: (kitchenId: string) => {
-      const result = resolveKitchenClickAction(kitchenId);
+        backgroundColor: '#f4ead7',
 
-      if (!result.ok) {
-        console.warn(
-          'Action failed',
-          result.error,
-        );
-      }
+        scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
 
-      return result;
-    },
+        render: {
+            pixelArt: false,
+            antialias: true,
+        },
 
-    assignCatToKitchen: (catId: string, kitchenId: string) => {
-      const result = assignCatToKitchen(kitchenId, catId);
+        scene: [villageScene],
+    };
 
-      if (!result.ok) {
-        console.warn(
-          'Assigment failed',
-          result.error
-        );
-      }
-    },
-
-    interactWithKitchen: kitchenId => {
-      const result = interactWithKitchen(kitchenId);
-
-      if (!result.ok) {
-        console.warn(
-          'Kitchen interaction failed',
-          result.error
-        );
-      }
-    },
-
-  });
-
-  const config: Phaser.Types.Core.GameConfig = {
-    type: Phaser.AUTO,
-
-    parent,
-
-    width: 390,
-    height: 844,
-
-    backgroundColor: '#f4ead7',
-
-    scale: {
-      mode: Phaser.Scale.FIT,
-      autoCenter: Phaser.Scale.CENTER_BOTH,
-    },
-
-    render: {
-      pixelArt: false,
-      antialias: true,
-    },
-
-    scene: [villageScene],
-  };
-  
-  return new Phaser.Game(config);
+    return new Phaser.Game(config);
 }

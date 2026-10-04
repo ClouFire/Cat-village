@@ -1,19 +1,24 @@
 import type { GameStore } from './store/GameStore';
 
-import { simulateMovement, simulateKitchenArrival, simulateLeavingWorkstation } from '../domain/systems/MovementSystem';
-import { simulateProduction } from '../domain/systems/ProductionSystem';
+import { simulateMovement, simulateLeavingWorkstation } from '../domain/systems/MovementSystem';
+import {
+    simulateAssignedWorkstations,
+    simulateWorkstationArrival,
+    simulateWorkstationProduction,
+} from '../domain/systems/WorkstationCycleSystem';
 
-export class GameLoop {    
+export class GameLoop {
     constructor(
         private readonly store: GameStore,
     ) {}
 
     tick(elapsedMs: number): void {
+        this.store.update(state => simulateAssignedWorkstations(state));
         this.store.update(state => simulateMovement(state, elapsedMs));
-        this.store.update(state => simulateKitchenArrival(state));
-        this.store.update(state => simulateProduction(state, elapsedMs));
+        this.store.update(state => simulateWorkstationArrival(state));
+        this.store.update(state => simulateWorkstationProduction(state, elapsedMs));
         this.store.update(state => simulateLeavingWorkstation(state, elapsedMs));
 
-        (window as any).gameStore = this.store;
-    };
+        (window as unknown as { gameStore?: GameStore }).gameStore = this.store;
+    }
 }

@@ -1,61 +1,84 @@
 import type { GameState } from '../entities/GameState';
 import type { Position } from '../value-objects/Position';
 
-export function simulateProduction(
+export function simulateWorkstationProduction(
     state: GameState,
-    elapsedMs: number
+    elapsedMs: number,
 ): GameState {
-    const kitchen = state.kitchens.find(item => item.state === 'producing');
+    const workstation = state.workstations.find(
+        item => item.state === 'producing',
+    );
 
-    if (!kitchen) {
+    if (!workstation) {
         return state;
     }
 
-    const kitchenId = kitchen.id;
-    const catId = kitchen.catId;
+    const workstationId = workstation.id;
+    const catId = workstation.assignedCatId;
 
     if (catId === null) {
         return state;
     }
 
-    if (kitchen.productionRemaining === null) {
+    if (workstation.productionRemaining === null) {
         return state;
     }
 
-    if (kitchen.productionRemaining <= 0) {
-        const newKitchenProducingRemain = null;
-        const newKitchenState = 'ready';
+    if (workstation.productionRemaining <= 0) {
+        const nextProductionRemaining = null;
+        const nextWorkstationState = 'ready';
 
-        const newCatState = 'moving';
-        const newCatTarget: Position = {
+        const nextCatState = 'moving';
+        const nextCatTarget: Position = {
             x: getRandomInt(100, 190),
-            y: getRandomInt(400, 500)
-        }
+            y: getRandomInt(400, 500),
+        };
 
         return {
             ...state,
 
-            kitchens: state.kitchens.map(item => {
-                return item.id === kitchenId ? {...item, state: newKitchenState, producingRemainingMs: newKitchenProducingRemain, catId: null} : item
+            workstations: state.workstations.map(item => {
+                return item.id === workstationId
+                    ? {
+                        ...item,
+                        state: nextWorkstationState,
+                        productionRemaining: nextProductionRemaining,
+                    }
+                    : item;
             }),
 
             cats: state.cats.map(item => {
-                return item.id === catId ? {...item, state: newCatState, targetPosition: newCatTarget, kitchenId: null} : item
+                return item.id === catId
+                    ? {
+                        ...item,
+                        state: nextCatState,
+                        targetPosition: nextCatTarget,
+                    }
+                    : item;
             }),
-        }
+        };
     }
 
-    const newProducingRemain = kitchen.productionRemaining - (kitchen.productionSpeed * elapsedMs);
+    const nextProductionRemaining =
+        workstation.productionRemaining -
+        workstation.productionSpeed * elapsedMs;
 
     return {
         ...state,
 
-        kitchens: state.kitchens.map(item => {
-            return item.id === kitchenId ? {...item, productionRemaining: newProducingRemain} : item
+        workstations: state.workstations.map(item => {
+            return item.id === workstationId
+                ? {
+                    ...item,
+                    productionRemaining: nextProductionRemaining,
+                }
+                : item;
         }),
-    }
+    };
 }
 
 function getRandomInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+    return Math.floor(
+        Math.random() * (max - min + 1),
+    ) + min;
 }
