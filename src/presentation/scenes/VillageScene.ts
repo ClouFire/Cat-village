@@ -3,6 +3,8 @@ import * as Phaser from 'phaser';
 import type { GameState } from '../../domain/entities/GameState';
 import type { GameStore } from '../../application/store/GameStore';
 import type { Position } from '../../domain/value-objects/Position';
+import type { AvailableCatsList } from '../../application/use-cases/kitchenClickActionUseCase';
+import type { KitchenClickActionResult } from '../../application/use-cases/kitchenClickActionUseCase';
 
 import { CatView } from '../game-objects/CatView';
 import { KitchenView } from '../game-objects/KiktchenView';
@@ -13,7 +15,9 @@ export interface VillageSceneDependencies {
     interactWithCat: (catId: string) => void;
     moveCat: (catId: string, target: Position) => void;
 
+    resolveKitchenClickAction: (kitchenId: string) => KitchenClickActionResult;
     interactWithKitchen: (kitchenId: string) => void;
+    assignCatToKitchen: (catId: string, kitchenId: string) => void;
     
     tick: (elapsedMs: number) => void;
 }
@@ -22,6 +26,7 @@ export class VillageScene extends Phaser.Scene {
     private readonly dependencies: VillageSceneDependencies;
     private readonly catViews = new Map<string, CatView>();
     private readonly kitchenViews = new Map<string, KitchenView>();
+    private catSelectorContainer: Phaser.GameObjects.Container | null = null;
     private unsubscribe: (() => void) | null = null;
 
     constructor(dependencies: VillageSceneDependencies) {
@@ -152,6 +157,17 @@ export class VillageScene extends Phaser.Scene {
             view.render(cat);
         });
 
+        const activeKitchenIds = new Set(
+            state.kitchens.map(kitchen => kitchen.id),
+        );
+
+        for (const [id, view] of this.kitchenViews) {
+            if (!activeKitchenIds.has(id)) {
+                view.destroy();
+                this.kitchenViews.delete(id);
+            }
+        }
+
         state.kitchens.forEach((kitchen, index) => {
             let view = this.kitchenViews.get(kitchen.id);
 
@@ -161,7 +177,7 @@ export class VillageScene extends Phaser.Scene {
                     kitchen.position.x,
                     kitchen.position.y,
                     kitchen,
-                    this.dependencies.interactWithKitchen
+                    kitchenId => this.handleKitchenClick(kitchenId)
                 );
 
                 this.kitchenViews.set(kitchen.id, view);
@@ -180,6 +196,269 @@ export class VillageScene extends Phaser.Scene {
             view.destroy();
         }
 
+        this.closeCatSelector();
         this.catViews.clear();
+        this.kitchenViews.clear();
+    }
+
+    private handleKitchenClick(kitchenId: string): void {
+        const result = this.dependencies.resolveKitchenClickAction(kitchenId);
+
+        if (!result.ok) {
+            console.warn(
+                'Kitchen click resolve failed',
+                result.error,
+            );
+
+            return;
+        }
+
+        switch (result.action) {
+            case 'COLLECT_PRODUCTION':
+                this.dependencies.interactWithKitchen(result.kitchenId);
+
+                break;
+
+            case 'OPEN_CAT_SELECTOR':
+                this.openCatSelector(
+                    result.kitchenId,
+                    result.availableCatsList,
+                );
+
+                break;
+
+            case 'NOOP':
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    private openCatSelector(
+        kitchenId: string,
+        cats: AvailableCatsList,
+    ): void {
+        this.closeCatSelector();
+
+        const width = this.scale.width;
+        const height = this.scale.height;
+
+        const overlay = this.add.rectangle(
+            width / 2,
+            height / 2,
+            width,
+            height,
+            0x000000,
+            0.35,
+        );
+
+        overlay.setInteractive();
+
+        const panelWidth = 300;
+        const rowHeight = 46;
+        const panelPadding = 20;
+        const titleHeight = 46;
+        const footerHeight = cats.length === 0 ? 54 : 18;
+
+        const panelHeight =
+            panelPadding * 2 +
+            titleHeight +
+            cats.length * rowHeight +
+            footerHeight;
+
+        const panel = this.add.container(
+            width / 2,
+            height / 2,
+        );
+
+        panel.setDepth(1000);
+
+        const background = this.add.rectangle(
+            0,
+            0,
+            panelWidth,
+            panelHeight,
+            0xfff7e8,
+            1,
+        );
+
+        background.setStrokeStyle(
+            2,
+            0x49382e,
+        );
+
+        const title = this.add.text(
+            0,
+            -panelHeight / 2 + 26,
+            'Выбери кота',
+            {
+                fontFamily: 'Arial',
+                fontSize: '18px',
+                color: '#49382e',
+                fontStyle: 'bold',
+            },
+        );
+
+        title.setOrigin(0.5);
+
+        const subtitle = this.add.text(
+            0,
+            -panelHeight / 2 + 52,
+            'Кто будет работать на кухне?',
+            {
+                fontFamily: 'Arial',
+                fontSize: '12px',
+                color: '#776454',
+            },
+        );
+
+        subtitle.setOrigin(0.5);
+
+        const closeButton = this.add.text(
+            panelWidth / 2 - 24,
+            -panelHeight / 2 + 18,
+            '×',
+            {
+                fontFamily: 'Arial',
+                fontSize: '24px',
+                color: '#49382e',
+                fontStyle: 'bold',
+            },
+        );
+
+        closeButton.setOrigin(0.5);
+        closeButton.setInteractive({ useHandCursor: true });
+
+        closeButton.on('pointerdown', () => {
+            this.closeCatSelector();
+        });
+
+        panel.add([
+            background,
+            title,
+            subtitle,
+            closeButton,
+        ]);
+
+        if (cats.length === 0) {
+            const emptyText = this.add.text(
+                0,
+                18,
+                'Нет доступных котов',
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '14px',
+                    color: '#776454',
+                },
+            );
+
+            emptyText.setOrigin(0.5);
+
+            panel.add(emptyText);
+        }
+
+        cats.forEach((cat, index) => {
+            const y =
+                -panelHeight / 2 +
+                panelPadding +
+                titleHeight +
+                28 +
+                index * rowHeight;
+
+            const row = this.add.rectangle(
+                0,
+                y,
+                panelWidth - 40,
+                36,
+                0xf2dfbd,
+                1,
+            );
+
+            row.setStrokeStyle(
+                1,
+                0xd0b48a,
+            );
+
+            row.setInteractive({ useHandCursor: true });
+
+            const catName = this.add.text(
+                -panelWidth / 2 + 54,
+                y,
+                cat.name,
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '14px',
+                    color: '#49382e',
+                    fontStyle: 'bold',
+                },
+            );
+
+            catName.setOrigin(0, 0.5);
+
+            const actionText = this.add.text(
+                panelWidth / 2 - 54,
+                y,
+                'Выбрать',
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '12px',
+                    color: '#776454',
+                },
+            );
+
+            actionText.setOrigin(1, 0.5);
+
+            const selectCat = () => {
+                this.dependencies.assignCatToKitchen(
+                    cat.id,
+                    kitchenId,
+                );
+
+                this.closeCatSelector();
+            };
+
+            row.on('pointerdown', selectCat);
+            catName.setInteractive({ useHandCursor: true });
+            catName.on('pointerdown', selectCat);
+
+            row.on('pointerover', () => {
+                row.setFillStyle(
+                    0xe8c990,
+                    1,
+                );
+            });
+
+            row.on('pointerout', () => {
+                row.setFillStyle(
+                    0xf2dfbd,
+                    1,
+                );
+            });
+
+            panel.add([
+                row,
+                catName,
+                actionText,
+            ]);
+        });
+
+        const modal = this.add.container(0, 0, [
+            overlay,
+            panel,
+        ]);
+
+        modal.setDepth(1000);
+
+        this.catSelectorContainer = modal;
+    }
+
+    private closeCatSelector(): void {
+        if (!this.catSelectorContainer) {
+            return;
+        }
+
+        this.catSelectorContainer.destroy(true);
+        this.catSelectorContainer = null;
     }
 }

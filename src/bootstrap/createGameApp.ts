@@ -10,6 +10,8 @@ import { GameLoop } from '../application/GameLoop';
 
 import { createInteractWithCatUseCase } from '../application/use-cases/interactWithCat';
 import { createInteractWithKitchenUseCase } from '../application/use-cases/interactWithKitchen';
+import { createAssignCatToKitchenUseCase } from '../application/use-cases/assignCatToKitchenUseCase';
+import { createKitchenClickActionUseCase } from '../application/use-cases/kitchenClickActionUseCase';
 import { createMoveCatUseCase } from '../application/use-cases/moveCat';
 
 
@@ -75,7 +77,9 @@ export function createGameApp(
   const moveCat = createMoveCatUseCase(store);
   const interactWithCat = createInteractWithCatUseCase(store);
 
+  const resolveKitchenClickAction = createKitchenClickActionUseCase(store);
   const interactWithKitchen = createInteractWithKitchenUseCase(store);
+  const assignCatToKitchen = createAssignCatToKitchenUseCase(store);
 
   const villageScene = new VillageScene({
     store,
@@ -99,6 +103,30 @@ export function createGameApp(
       gameLoop.tick(elapsedMs);
     },
 
+    resolveKitchenClickAction: (kitchenId: string) => {
+      const result = resolveKitchenClickAction(kitchenId);
+
+      if (!result.ok) {
+        console.warn(
+          'Action failed',
+          result.error,
+        );
+      }
+
+      return result;
+    },
+
+    assignCatToKitchen: (catId: string, kitchenId: string) => {
+      const result = assignCatToKitchen(kitchenId, catId);
+
+      if (!result.ok) {
+        console.warn(
+          'Assigment failed',
+          result.error
+        );
+      }
+    },
+
     interactWithKitchen: kitchenId => {
       const result = interactWithKitchen(kitchenId);
 
@@ -108,7 +136,7 @@ export function createGameApp(
           result.error
         );
       }
-    }
+    },
 
   });
 

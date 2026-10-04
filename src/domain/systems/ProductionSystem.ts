@@ -27,7 +27,7 @@ export function simulateProduction(
         const newKitchenState = 'ready';
 
         const newCatState = 'moving';
-        const newCatTarget = {
+        const newCatTarget: Position = {
             x: getRandomInt(100, 190),
             y: getRandomInt(400, 500)
         }
