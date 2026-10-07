@@ -6,6 +6,7 @@ import { GameStore } from '../application/store/GameStore';
 import { GameLoop } from '../application/GameLoop';
 
 import { createInteractWithCatUseCase } from '../application/use-cases/interactWithCat';
+import { createUpgradeWorkstationUseCase } from '../application/use-cases/upgradeWorkstationUseCase';
 import { createCollectWorkstationProductionUseCase } from '../application/use-cases/collectWorkstationProductionUseCase';
 import { createAssignCatToWorkstationUseCase } from '../application/use-cases/assignCatToWorkstationUseCase';
 import { createWorkstationClickActionUseCase } from '../application/use-cases/workstationClickActionUseCase';
@@ -56,6 +57,8 @@ export function createGameApp(
                 productionRemaining: null,
 
                 assignedCatId: null,
+
+                level: 1
             },
         ],
 
@@ -78,6 +81,7 @@ export function createGameApp(
     const resolveWorkstationClickAction = createWorkstationClickActionUseCase(store);
     const collectWorkstationProduction = createCollectWorkstationProductionUseCase(store);
     const assignCatToWorkstation = createAssignCatToWorkstationUseCase(store);
+    const upgradeWorkstation = createUpgradeWorkstationUseCase(store);
 
     const villageScene = new VillageScene({
         store,
@@ -135,6 +139,17 @@ export function createGameApp(
                 );
             }
         },
+
+        upgradeWorkstation: workstationId => {
+            const result = upgradeWorkstation(workstationId);
+
+            if (!result.ok) {
+                console.warn(
+                    'Unable to upgrade workstation',
+                    result.error
+                );
+            }
+        }
     });
 
     const config: Phaser.Types.Core.GameConfig = {

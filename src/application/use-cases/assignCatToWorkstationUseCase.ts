@@ -1,6 +1,5 @@
-import { assignCatToWorkstation as applyRule } from '../../domain/rules/assignCatToWorkstation';
+import { assignCatToWorkstation as applyRule, AssignCatToWorkstationResult } from '../../domain/rules/assignCatToWorkstation';
 
-import type { AssignCatToWorkstationResult } from '../../domain/rules/assignCatToWorkstation';
 import type { GameStore } from '../store/GameStore';
 
 export function createAssignCatToWorkstationUseCase(store: GameStore) {

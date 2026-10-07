@@ -1,4 +1,4 @@
-import type { WorkstationStates, WorkstationType } from '../../configs/Workstation';
+import type { WorkstationStates, WorkstationType } from '../../configs/workstation';
 import type { ProductionTypes } from '../../configs/Production';
 import type { Position } from '../../value-objects/Position';
 
@@ -17,4 +17,6 @@ export interface Workstation {
     productionSpeed: number;
     productionDuration: number;
     productionRemaining: number | null;
+
+    level: number
 }

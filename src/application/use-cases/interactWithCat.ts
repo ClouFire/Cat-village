@@ -1,6 +1,5 @@
-import { interactWithCat as applyRule } from '../../domain/rules/interactWithCat';
+import { interactWithCat as applyRule, InteractWithCatResult } from '../../domain/rules/interactWithCat';
 
-import type { InteractWithCatResult } from '../../domain/rules/interactWithCat';
 import type { GameStore } from '../store/GameStore';
 
 export function createInteractWithCatUseCase (
