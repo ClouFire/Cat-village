@@ -1,8 +1,7 @@
 import type { Position } from '../../domain/value-objects/Position';
-import type { MoveCatResult } from '../../domain/rules/moveCat';
 import type { GameStore } from '../../application/store/GameStore';
 
-import { moveCat as applyMoveCatRule} from '../../domain/rules/moveCat';
+import { moveCat as applyMoveCatRule, MoveCatResult} from '../../domain/rules/moveCat';
 
 export type MoveCatUseCase = (
     catId: string,

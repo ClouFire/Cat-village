@@ -6,3 +6,4 @@ export type WorkstationStates =
     | 'waiting_for_cat'
     | 'ready'
     | 'producing';
+

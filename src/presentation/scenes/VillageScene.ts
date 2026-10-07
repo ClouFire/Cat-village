@@ -20,6 +20,7 @@ export interface VillageSceneDependencies {
     resolveWorkstationClickAction: (workstationId: string) => WorkstationClickActionResult;
     collectWorkstationProduction: (workstationId: string) => void;
     assignCatToWorkstation: (catId: string, workstationId: string) => void;
+    upgradeWorkstation: (workstationId: string) => void;
 
     tick: (elapsedMs: number) => void;
 }
@@ -331,18 +332,40 @@ export class VillageScene extends Phaser.Scene {
             },
         );
 
+        const upgradeButton = this.add.text(
+            -panelWidth / 2 + 24,
+            -panelHeight / 2 + 18,
+            '^',
+            {
+                fontFamily: 'Arial',
+                fontSize: '24px',
+                color: '#49382e',
+                fontStyle: 'bold',
+            },
+        )
+
         closeButton.setOrigin(0.5);
         closeButton.setInteractive({ useHandCursor: true });
+
+        upgradeButton.setOrigin(0.5);
+        upgradeButton.setInteractive({ useHandCursor: true });
 
         closeButton.on('pointerdown', () => {
             this.closeCatSelector();
         });
+
+        upgradeButton.on('pointerdown', () => {
+            this.dependencies.upgradeWorkstation(
+                workstationId
+            );
+        })
 
         panel.add([
             background,
             title,
             subtitle,
             closeButton,
+            upgradeButton,
         ]);
 
         if (cats.length === 0) {
