@@ -31,12 +31,14 @@ export function createGameApp(
                 movementSpeed: 80,
 
                 workstationId: null,
+                restingTimeRemaining: 0,
+                restingDuration: 10000,
             },
         ],
 
         workstations: [
             {
-                id: 'workstation-001',
+                id: 'kitchen-001',
                 name: 'first kitchen',
                 appearanceId: 'black-square',
                 state: 'idle',

@@ -28,7 +28,7 @@ export function simulateWorkstationProduction(
         const nextProductionRemaining = null;
         const nextWorkstationState = 'ready';
 
-        const nextCatState = 'moving';
+        const nextCatState = 'resting';
         const nextCatTarget: Position = {
             x: getRandomInt(100, 190),
             y: getRandomInt(400, 500),

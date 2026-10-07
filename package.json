@@ -17,9 +17,12 @@
     "dev": "node log.js dev & vite --config vite/config.dev.mjs",
     "build": "node log.js build & vite build --config vite/config.prod.mjs",
     "dev-nolog": "vite --config vite/config.dev.mjs",
-    "build-nolog": "vite build --config vite/config.prod.mjs"
+    "build-nolog": "vite build --config vite/config.prod.mjs",
+    "arch": "depcruise src tests --config .dependency-cruiser.js",
+    "arch:graph": "depcruise src --config .dependency-cruiser.js --output-type dot | dot -T svg > dependency-graph.svg"
   },
   "devDependencies": {
+    "dependency-cruiser": "^18.5.0",
     "typescript": "~5.7.2",
     "vite": "^6.3.1",
     "vitest": "^5.0.2"
@@ -29,5 +32,3 @@
     "terser": "^5.39.0"
   }
 }
-
-

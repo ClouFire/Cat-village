@@ -15,4 +15,6 @@ export interface Cat {
     movementSpeed: number;
 
     workstationId: string | null;
+    restingTimeRemaining: number;
+    restingDuration: number;
 }

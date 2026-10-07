@@ -1,13 +1,14 @@
 import type { GameState } from '../entities/GameState';
 import type { Cat } from '../entities/Cat';
 
+import { getRandomInt } from './helpers/helpers';
+
 function moveCatByTime(
     cat: Cat,
     elapsedMs: number,
 ): Cat {
     if (
-        cat.state !== 'moving'
-        || cat.targetPosition === null
+        cat.targetPosition === null
     ) {
         return cat;
     }
@@ -19,6 +20,7 @@ function moveCatByTime(
     const maxDistance = cat.movementSpeed * (elapsedMs / 1000);
 
     if (distance <= maxDistance) {
+      if (cat.state === 'moving') {
         return {
             ...cat,
 
@@ -27,11 +29,24 @@ function moveCatByTime(
             },
 
             targetPosition: null,
-            state: 'idle',
+            state: 'idle'
         };
+      }
+      
+      if (cat.state === 'resting' || cat.state === 'idle') {
+        return {
+            ...cat,
+
+            position: {
+                ...cat.targetPosition,
+            },
+
+            targetPosition: null,
+        };
+      }
     }
 
-    if (distance === 0) {
+    if (distance === 0 && cat.state !== 'resting') {
         return {
             ...cat,
             targetPosition: null,
@@ -80,28 +95,23 @@ export function simulateMovement(
     };
 }
 
-export function simulateLeavingWorkstation(
-    state: GameState,
-    elapsedMs: number,
+export function simulateCatWandering(
+    state: GameState
 ): GameState {
-    const cats = state.cats.map(cat => {
-        if (cat.state !== 'moving') {
-            return cat;
-        }
-
-        return moveCatByTime(cat, elapsedMs);
-    });
-
-    const hasChanges = cats.some(
-        (cat, index) => cat !== state.cats[index],
-    );
-
-    if (!hasChanges) {
-        return state;
-    }
-
     return {
         ...state,
-        cats,
-    };
+        
+        cats: state.cats.map(item => {
+            if ((item.state === 'idle' || item.state === 'resting') && item.targetPosition === null) {
+                const newPosition = {
+                    x: getRandomInt(100, 190, Math.random),
+                    y: getRandomInt(400, 500, Math.random),
+                };
+
+                return {...item, targetPosition: newPosition};
+            }
+
+            return item;
+        }),
+    }
 }

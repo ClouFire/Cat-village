@@ -1,6 +1,8 @@
 import type { GameState } from '../entities/GameState';
 import type { Position } from '../value-objects/Position';
 
+import { getRandomInt } from './helpers/helpers';
+
 function isSamePosition(
     first: Position,
     second: Position,
@@ -16,11 +18,10 @@ export function simulateAssignedWorkstations(
             return false;
         }
 
-        const cat = state.cats.find(catItem => catItem.id === item.assignedCatId);
+        const cat = state.cats.find(catItem => catItem.id === item.assignedCatId && catItem.state === 'idle' && catItem.restingTimeRemaining <= 0);
 
         return Boolean(
             cat
-            && cat.state === 'idle'
             && cat.workstationId === item.id,
         );
     });
@@ -141,8 +142,8 @@ export function simulateWorkstationProduction(
 
     const catId = workstation.assignedCatId;
     const catTarget: Position = {
-        x: getRandomInt(100, 190),
-        y: getRandomInt(400, 500),
+        x: getRandomInt(100, 190, Math.random),
+        y: getRandomInt(400, 500, Math.random),
     };
 
     return {
@@ -154,7 +155,6 @@ export function simulateWorkstationProduction(
                     ...item,
                     state: 'ready',
                     productionRemaining: null,
-                    assignedCatId: null,
                 }
                 : item;
         }),
@@ -163,15 +163,46 @@ export function simulateWorkstationProduction(
             return item.id === catId
                 ? {
                     ...item,
-                    state: 'moving',
+                    state: 'resting',
                     targetPosition: catTarget,
-                    workstationId: null,
+                    restingTimeRemaining: item.restingDuration,
                 }
                 : item;
         }),
     };
 }
 
-function getRandomInt(min: number, max: number): number {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+export function simulateWorkstationCycleStart(
+    state: GameState
+): GameState {
+    const workstation = state.workstations.find(item => item.state === 'idle' && item.assignedCatId !== null);
+
+    if (!workstation) {
+        return state;
+    }
+
+    const cat = state.cats.find(item => item.id === workstation.assignedCatId && item.state === 'idle' && item.restingTimeRemaining <= 0);
+
+    if (!cat) {
+        return state;
+    }
+
+    const newCatState = 'moving';
+    const newWorkstationState = 'waiting_for_cat';
+    const newTargetPosition = {
+        x: workstation.position.x,
+        y: workstation.position.y
+    };
+
+    return {
+        ...state,
+        
+        cats: state.cats.map(item => {
+            return item.id === cat.id ? {...item, state: newCatState, targetPosition: newTargetPosition} : item
+        }),
+
+        workstations: state.workstations.map(item => {
+            return item.id === workstation.id ? {...item, state: newWorkstationState} : item
+        }),
+    }
 }
