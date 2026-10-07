@@ -1,8 +1,4 @@
-import { Game } from 'phaser';
 import type { GameState } from '../entities/GameState';
-import type { Position } from '../value-objects/Position';
-
-import { getRandomInt } from './helpers/helpers';
 
 export function simulateCatRest(
     state: GameState,
