@@ -4,6 +4,10 @@ export function simulateCatRest(
     state: GameState,
     elapsedMs: number
 ): GameState {
+    if (!state.cats.filter(item => item.state === 'resting')) {
+        return state;
+    }
+
     return {
         ...state,
 

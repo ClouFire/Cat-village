@@ -1,61 +1,11 @@
 import type { GameState } from '../entities/GameState';
 import type { Position } from '../value-objects/Position';
 
-import { getRandomInt } from './helpers/helpers';
-
 function isSamePosition(
     first: Position,
     second: Position,
 ): boolean {
     return first.x === second.x && first.y === second.y;
-}
-
-export function simulateAssignedWorkstations(
-    state: GameState,
-): GameState {
-    const workstation = state.workstations.find(item => {
-        if (item.state !== 'idle' || item.assignedCatId === null) {
-            return false;
-        }
-
-        const cat = state.cats.find(catItem => catItem.id === item.assignedCatId && catItem.state === 'idle' && catItem.restingTimeRemaining <= 0);
-
-        return Boolean(
-            cat
-            && cat.workstationId === item.id,
-        );
-    });
-
-    if (!workstation || workstation.assignedCatId === null) {
-        return state;
-    }
-
-    const catId = workstation.assignedCatId;
-
-    return {
-        ...state,
-
-        cats: state.cats.map(item => {
-            return item.id === catId
-                ? {
-                    ...item,
-                    state: 'moving',
-                    targetPosition: {
-                        ...workstation.position,
-                    },
-                }
-                : item;
-        }),
-
-        workstations: state.workstations.map(item => {
-            return item.id === workstation.id
-                ? {
-                    ...item,
-                    state: 'waiting_for_cat',
-                }
-                : item;
-        }),
-    };
 }
 
 export function simulateWorkstationArrival(
@@ -141,10 +91,6 @@ export function simulateWorkstationProduction(
     }
 
     const catId = workstation.assignedCatId;
-    const catTarget: Position = {
-        x: getRandomInt(100, 190, Math.random),
-        y: getRandomInt(400, 500, Math.random),
-    };
 
     return {
         ...state,
@@ -164,7 +110,6 @@ export function simulateWorkstationProduction(
                 ? {
                     ...item,
                     state: 'resting',
-                    targetPosition: catTarget,
                     restingTimeRemaining: item.restingDuration,
                 }
                 : item;
